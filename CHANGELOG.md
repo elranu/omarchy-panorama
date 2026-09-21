@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.3
 
 - The top-bar workspace buttons are no longer destroyed and recreated when
   their order changes. Focusing a workspace reorders the MRU list, and each
