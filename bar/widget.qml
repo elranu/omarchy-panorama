@@ -138,16 +138,23 @@ BarWidget {
         height: parent.height
         spacing: Style.space(1)
 
+        // The model is the number of buttons, not the id list. A Repeater given a
+        // new list destroys and recreates every button, and each Omarchy
+        // WidgetButton registers and unregisters itself with the bar, which then
+        // resyncs every plugin's click targets. Focusing a workspace reorders the
+        // MRU list, so that happened on nearly every switch. With a count, a
+        // reorder only rebinds each button's workspace id; buttons are created or
+        // destroyed only when the number of workspaces changes.
         Repeater {
-            model: root.shownWorkspaceIds
+            model: root.shownWorkspaceIds.length
 
             WidgetButton {
-                required property int modelData
                 required property int index
-                readonly property bool focused: Hyprland.focusedWorkspace?.id === modelData
-                readonly property var workspace: Local.HyprlandData.workspaceById[modelData]
+                readonly property int workspaceId: root.shownWorkspaceIds[index] ?? 0
+                readonly property bool focused: Hyprland.focusedWorkspace?.id === workspaceId
+                readonly property var workspace: Local.HyprlandData.workspaceById[workspaceId]
                 readonly property bool occupied: !!workspace
-                    && Local.HyprlandData.workspaceHasVisibleWindows(modelData)
+                    && Local.HyprlandData.workspaceHasVisibleWindows(workspaceId)
 
                 bar: root.bar
                 fontFamily: "JetBrainsMono Nerd Font"
@@ -157,7 +164,7 @@ BarWidget {
                     ? "\uDB85\uDCFB"
                     : root.legacySort
                         ? String(index + 1)
-                        : (modelData === 10 ? "0" : String(modelData))
+                        : (workspaceId === 10 ? "0" : String(workspaceId))
                 opacity: occupied || focused ? 1 : 0.5
                 horizontalMargin: 6
                 verticalPadding: 6
@@ -167,7 +174,7 @@ BarWidget {
                     if (buttonCode === Qt.RightButton)
                         root.openOverview();
                     else
-                        root.focusWorkspace(modelData);
+                        root.focusWorkspace(workspaceId);
                 }
             }
         }

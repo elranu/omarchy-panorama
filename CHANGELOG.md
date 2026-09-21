@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- The top-bar workspace buttons are no longer destroyed and recreated when
+  their order changes. Focusing a workspace reorders the MRU list, and each
+  switch rebuilt every button, each one resyncing the bar's click-target
+  registry; six switches created 84 buttons. The buttons now follow their slot
+  and only the count decides when one is added or removed. A third captured
+  hang showed this path after 0.2.2's fix had already removed the redundant
+  rebuilds.
+
 ## 0.2.2
 
 - Stopped refetching the whole window model on Hyprland events that cannot

@@ -112,7 +112,7 @@ test('bar widget provides a mouse fallback into Overview', () => {
     assert.match(source, /acceptedButtons:\s*Qt\.RightButton/);
     assert.match(source, /onClicked: root\.openOverview\(\)/);
     assert.match(source, /if \(buttonCode === Qt\.RightButton\)\s*\n\s*root\.openOverview\(\)/);
-    assert.match(source, /else\s*\n\s*root\.focusWorkspace\(modelData\)/);
+    assert.match(source, /else\s*\n\s*root\.focusWorkspace\(workspaceId\)/);
 });
 
 test('restores native number bindings only for an owned legacy to system handoff', () => {
