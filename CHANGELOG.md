@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.2
 
 - Stopped refetching the whole window model on Hyprland events that cannot
   change it: keyboard layout switches, `screencastv2`, and the plugin's own
