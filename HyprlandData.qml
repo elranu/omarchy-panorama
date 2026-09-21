@@ -7,6 +7,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import "HyprlandEvents.js" as HyprlandEvents
 
 /**
  * Provides access to some Hyprland data not available in Quickshell.Hyprland.
@@ -566,8 +567,8 @@ Singleton {
         target: Hyprland
 
         function onRawEvent(event) {
-            // Layer/screencast events don't change clients/workspaces/monitors.
-            if (["openlayer", "closelayer", "screencast"].includes(event.name)) return;
+            if (!HyprlandEvents.affectsWorkspaceModel(event.name, event.data))
+                return;
             // activeWindow is cheap (tiny JSON) and feeds focusedClientForWorkspace,
             // so refresh it immediately for responsiveness; coalesce the rest.
             if (["activewindow", "activewindowv2", "windowtitlev2", "focusedmon", "focusedmonv2"].includes(event.name)) {

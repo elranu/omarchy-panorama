@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Stopped refetching the whole window model on Hyprland events that cannot
+  change it: keyboard layout switches, `screencastv2`, and the plugin's own
+  Super-key events. Each one used to spawn four `hyprctl` processes, and a
+  flapping virtual keyboard could emit dozens per second.
+
 ## 0.2.1
 
 - Renamed `AGENTS.md` to `docs/no-hyprctl-reload.md`. The file is installed with
