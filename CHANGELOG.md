@@ -6,6 +6,11 @@
   change it: keyboard layout switches, `screencastv2`, and the plugin's own
   Super-key events. Each one used to spawn four `hyprctl` processes, and a
   flapping virtual keyboard could emit dozens per second.
+- The top-bar workspace buttons are only rebuilt when the list they show
+  actually changes. Every Hyprland event touching their inputs used to destroy
+  and recreate all of them, and each button's registration with the bar runs a
+  sync across every plugin's click targets. Under a burst of events that churn
+  could pin the shell's main thread in the JavaScript garbage collector.
 
 ## 0.2.1
 
