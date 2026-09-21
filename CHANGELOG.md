@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- The top-bar workspace buttons are only rebuilt when the list they show
+  actually changes. Every Hyprland event touching their inputs used to destroy
+  and recreate all of them, and each button's registration with the bar runs a
+  sync across every plugin's click targets. Under a burst of events that churn
+  could pin the shell's main thread in the JavaScript garbage collector.
+
 ## 0.2.1
 
 - Renamed `AGENTS.md` to `docs/no-hyprctl-reload.md`. The file is installed with

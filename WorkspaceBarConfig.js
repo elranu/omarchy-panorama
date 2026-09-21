@@ -74,3 +74,18 @@ function legacyShellConfig(shell) {
 function requiresNativeWorkspaceNumberRestore(previousMode, nextMode) {
     return previousMode === "legacy" && nextMode === "system";
 }
+
+// Whether two workspace id lists hold the same ids in the same order. The bar
+// only hands its Repeater a new list when this is false: a Repeater given a new
+// array destroys and recreates every button, even when nothing changed.
+function sameWorkspaceIds(a, b) {
+    const left = a ?? [];
+    const right = b ?? [];
+    if (left.length !== right.length)
+        return false;
+    for (let i = 0; i < left.length; ++i) {
+        if (left[i] !== right[i])
+            return false;
+    }
+    return true;
+}

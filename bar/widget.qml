@@ -5,6 +5,7 @@ import Quickshell.Hyprland
 import qs.Commons
 import qs.Ui
 import ".." as Local
+import "../WorkspaceBarConfig.js" as WorkspaceBarConfig
 
 BarWidget {
     id: root
@@ -80,6 +81,20 @@ BarWidget {
     onSettingsChanged: { applySettings(); injectPanel(); }
     Component.onCompleted: {
         applySettings();
+        root.shownWorkspaceIds = root.workspaceIds;
+    }
+
+    // What the Repeater draws. workspaceIds is re-evaluated on every Hyprland
+    // event that touches its inputs (focused monitor, workspace data, MRU) and
+    // returns a new array each time, usually with identical contents. Handing
+    // that straight to the Repeater destroyed and recreated every button, and
+    // each button's registration with the bar runs a sync over all plugins'
+    // click targets. Under a burst of events that churn pinned the shell's main
+    // thread in the garbage collector. Only a real change reaches the Repeater.
+    property var shownWorkspaceIds: []
+    onWorkspaceIdsChanged: {
+        if (!WorkspaceBarConfig.sameWorkspaceIds(root.shownWorkspaceIds, root.workspaceIds))
+            root.shownWorkspaceIds = root.workspaceIds;
     }
 
     // Keep the small gaps between workspace buttons useful as a mouse fallback
@@ -124,7 +139,7 @@ BarWidget {
         spacing: Style.space(1)
 
         Repeater {
-            model: root.workspaceIds
+            model: root.shownWorkspaceIds
 
             WidgetButton {
                 required property int modelData

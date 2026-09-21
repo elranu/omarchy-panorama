@@ -137,3 +137,13 @@ test('manifest and settings panel report the same plugin version', () => {
     const panel = fs.readFileSync(require.resolve('../SettingsPanel.qml'), 'utf8');
     assert.match(panel, new RegExp(`pluginVersion:\\s*"${version.replaceAll('.', '\\.')}"`));
 });
+
+test('workspace id lists compare by content and order', () => {
+    const same = context.sameWorkspaceIds;
+    assert.equal(same([12, 8, 2, 4], [12, 8, 2, 4]), true);
+    assert.equal(same([], []), true);
+    assert.equal(same(undefined, []), true);
+    assert.equal(same([12, 8, 2, 4], [8, 12, 2, 4]), false);
+    assert.equal(same([1, 2], [1, 2, 3]), false);
+    assert.equal(same([1], null), false);
+});
