@@ -1,7 +1,9 @@
 # Vista
 
-*Formerly Panorama. The plugin id (`ranu.panorama`) and the repository URL
-are unchanged, so existing installs keep working.*
+*Formerly Panorama, renamed because two other Omarchy plugins are already
+called Panorama and one of them is a window overview too. The plugin id stays
+`ranu.panorama` and the old repository URL still redirects, so existing
+installs keep working.*
 
 **Press Win/Super to open the Overview on every monitor.**
 
@@ -59,7 +61,7 @@ runtime and are removed when the plugin is disabled.
 ## Install
 
 ```sh
-omarchy plugin add https://github.com/elranu/omarchy-panorama.git --enable
+omarchy plugin add https://github.com/elranu/omarchy-vista.git --enable
 ```
 
 After enabling, the plugin registers its Hyprland bindings automatically. Users do not need to edit `~/.config/hypr/bindings.lua`.
@@ -72,7 +74,7 @@ the same Win/Super bindings. Remove the original first, then add Vista:
 
 ```sh
 omarchy plugin remove hancore.overview-workspaces
-omarchy plugin add https://github.com/elranu/omarchy-panorama.git --enable
+omarchy plugin add https://github.com/elranu/omarchy-vista.git --enable
 omarchy restart shell
 ```
 
@@ -106,7 +108,9 @@ omarchy restart shell
 
 Removing the plugin unregisters its runtime bindings and restores Omarchy's
 native workspace indicator and workspace shortcuts. Optionally delete its saved
-workspace order with `rm -rf "${XDG_STATE_HOME:-$HOME/.local/state}/omarchy-panorama"`.
+workspace order with `rm -rf "${XDG_STATE_HOME:-$HOME/.local/state}/omarchy-panorama"`
+(the state directory keeps its old name so an upgrade does not lose the learned
+workspace order).
 
 ## Workspace ordering
 
