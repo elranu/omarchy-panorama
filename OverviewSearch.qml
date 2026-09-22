@@ -5,6 +5,8 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
+import "Calculator.js" as Calculator
+import "MiniApps.js" as MiniApps
 
 Item {
     id: root
@@ -30,12 +32,27 @@ Item {
         ? MenuSearch.query(normalizedQuery, maxMenuResults)
         : []
     readonly property int commandResultCount: commandMode && commandText.length > 0 ? 1 : 0
-    readonly property int totalResults: commandResultCount + appResults.length
+    // Arithmetic in the query, such as 12*3+4, becomes the first result;
+    // "=" forces it. Mutually exclusive with command mode, so both use index 0.
+    readonly property var calcResult: hasQuery && !commandMode ? Calculator.evaluate(normalizedQuery) : null
+    readonly property int calcResultCount: calcResult ? 1 : 0
+    readonly property var miniAppResults: hasQuery && !commandMode
+        ? MiniApps.search(normalizedQuery, 3)
+        : []
+    readonly property int leadingResultCount: commandResultCount + calcResultCount
+        + miniAppResults.length
+    readonly property int totalResults: leadingResultCount + appResults.length
         + windowResults.length + menuResults.length
     readonly property int popupWidth: Math.min(760, Math.max(520, width - 80))
 
     signal searchRequested()
     signal closeRequested()
+
+    // The rendered row for the current selection. Rows differ in height (the
+    // calculator card is 92, a selected result 76, the rest 54) and section
+    // headers sit between them, so scrolling asks the delegate where it is
+    // instead of multiplying an assumed row height.
+    property Item selectedRowItem: null
 
     function windowHaystack(win) {
         const workspace = win?.workspace || {};
@@ -67,17 +84,48 @@ Item {
         if (totalResults <= 0)
             return;
         selectedIndex = (selectedIndex + delta + totalResults) % totalResults;
-        resultsFlickable.ensureVisible(selectedIndex);
+        // After layout: the newly selected row grows, and its neighbour shrinks.
+        Qt.callLater(resultsFlickable.ensureVisible);
     }
 
-    function launchApp(app) {
+    // By default an app opens on a new, empty workspace. With inPlace (Shift+Enter
+    // or Shift+click) it opens on the workspace that was current when the
+    // Overview opened: arrow navigation only moves the selection, it never
+    // switches workspace, so Hyprland's focused workspace is still that one.
+    function launchApp(app, inPlace) {
         if (!app)
             return;
-        Hyprland.dispatch('hl.dsp.focus({ workspace = "empty" })');
+        if (!inPlace)
+            Hyprland.dispatch('hl.dsp.focus({ workspace = "empty" })');
         Qt.callLater(() => {
             AppSearch.launchApp(app);
             GlobalStates.overviewOpen = false;
         });
+    }
+
+    function openMiniApp(app, input) {
+        if (!app)
+            return;
+        GlobalStates.overviewMiniAppInput = String(input ?? "");
+        GlobalStates.overviewMiniApp = app.id;
+        GlobalStates.overviewSearchMode = false;
+        root.closeRequested();
+    }
+
+    function openCalculator() {
+        root.openMiniApp(MiniApps.byId("calculator"), calcResult ? calcResult.expression : normalizedQuery);
+    }
+
+    // "--" keeps a negative result such as -6 from being read as an option.
+    // The Overview closes on copy, so Omarchy's OSD card confirms it; -q keeps
+    // that best-effort if the shell's IPC is unavailable.
+    function copyCalcResult() {
+        if (!calcResult)
+            return;
+        Quickshell.execDetached(["wl-copy", "--", calcResult.display]);
+        Quickshell.execDetached(["omarchy-shell", "-q", "osd", "show",
+            JSON.stringify({ icon: "\uF1EC", message: `Copied ${calcResult.grouped}`, duration: 1400 })]);
+        GlobalStates.overviewOpen = false;
     }
 
     function focusWindow(win) {
@@ -113,16 +161,31 @@ Item {
         GlobalStates.overviewOpen = false;
     }
 
-    function activateSelection() {
+    function activateSelection(inPlace) {
         if (commandResultCount > 0) {
             executeCommand();
             return;
         }
-        if (selectedIndex < appResults.length) {
-            launchApp(appResults[selectedIndex]);
+        if (calcResultCount > 0 && selectedIndex === 0) {
+            // Enter opens the calculator so the sum can be carried on;
+            // Shift+Enter is the shortcut that just copies and leaves.
+            if (inPlace === true)
+                copyCalcResult();
+            else
+                openCalculator();
             return;
         }
-        const windowIndex = selectedIndex - appResults.length;
+        const miniAppIndex = selectedIndex - commandResultCount - calcResultCount;
+        if (miniAppIndex >= 0 && miniAppIndex < miniAppResults.length) {
+            openMiniApp(miniAppResults[miniAppIndex], "");
+            return;
+        }
+        const appIndex = selectedIndex - leadingResultCount;
+        if (appIndex >= 0 && appIndex < appResults.length) {
+            launchApp(appResults[appIndex], inPlace === true);
+            return;
+        }
+        const windowIndex = appIndex - appResults.length;
         if (windowIndex >= 0 && windowIndex < windowResults.length) {
             focusWindow(windowResults[windowIndex]);
             return;
@@ -231,16 +294,16 @@ Item {
             spacing: 10
 
             NerdIcon {
-                symbol: root.commandMode ? "terminal" : "search"
+                symbol: root.commandMode ? "terminal" : (root.calcResultCount > 0 ? "calculator" : "search")
                 iconSize: 18
-                color: root.commandMode ? TuiStyle.accent : TuiStyle.dim
+                color: root.commandMode || root.calcResultCount > 0 ? TuiStyle.accent : TuiStyle.dim
             }
 
             StyledText {
                 Layout.fillWidth: true
                 text: root.hasQuery
                     ? root.query
-                    : "Search apps, windows and the menu    >  shell command"
+                    : "Search apps, windows and the menu    =  calculate    >  shell command"
                 color: root.hasQuery ? TuiStyle.fg : TuiStyle.dim
                 font.pixelSize: 15
                 elide: Text.ElideLeft
@@ -288,13 +351,18 @@ Item {
             boundsBehavior: Flickable.StopAtBounds
             clip: true
 
-            function ensureVisible(index) {
-                const rowHeight = 54;
-                const targetY = Math.max(0, index * rowHeight - 28);
-                if (targetY < contentY)
-                    contentY = targetY;
-                else if (targetY + rowHeight > contentY + height)
-                    contentY = Math.min(contentHeight - height, targetY + rowHeight - height);
+            function ensureVisible() {
+                const item = root.selectedRowItem;
+                if (!item || item.height <= 0)
+                    return;
+                const margin = 8;
+                const top = item.y - margin;
+                const bottom = item.y + item.height + margin;
+                const maxContentY = Math.max(0, contentHeight - height);
+                if (top < contentY)
+                    contentY = Math.max(0, top);
+                else if (bottom > contentY + height)
+                    contentY = Math.min(maxContentY, bottom - height);
             }
 
             ColumnLayout {
@@ -314,6 +382,38 @@ Item {
                     onActivated: root.executeCommand()
                 }
 
+                CalcCard {
+                    Layout.fillWidth: true
+                    visible: root.calcResultCount > 0
+                    selected: root.selectedIndex === 0
+                    result: root.calcResult
+                    onActivated: inPlace => inPlace ? root.copyCalcResult() : root.openCalculator()
+                }
+
+                SearchSectionHeader {
+                    Layout.fillWidth: true
+                    visible: root.miniAppResults.length > 0
+                    label: "Mini apps"
+                    count: root.miniAppResults.length
+                }
+
+                Repeater {
+                    model: root.miniAppResults
+
+                    SearchResultRow {
+                        required property var modelData
+                        required property int index
+                        Layout.fillWidth: true
+                        resultIndex: root.commandResultCount + root.calcResultCount + index
+                        title: modelData?.title || ""
+                        subtitle: modelData?.subtitle || ""
+                        meta: "Opens in Overview"
+                        symbol: modelData?.icon || "apps"
+                        selected: root.selectedIndex === resultIndex
+                        onActivated: root.openMiniApp(modelData, "")
+                    }
+                }
+
                 SearchSectionHeader {
                     Layout.fillWidth: true
                     visible: root.appResults.length > 0
@@ -328,13 +428,14 @@ Item {
                         required property var modelData
                         required property int index
                         Layout.fillWidth: true
-                        resultIndex: index
+                        resultIndex: root.leadingResultCount + index
                         title: modelData?.name || ""
                         subtitle: modelData?.comment || modelData?.genericName || modelData?.id || ""
-                        meta: "New workspace"
+                        // The selected row spells out both keys; the others stay short.
+                        meta: selected ? "Enter new · Shift+Enter here" : "New workspace"
                         iconSource: AppSearch.iconSource(modelData?.icon || "")
                         selected: root.selectedIndex === resultIndex
-                        onActivated: root.launchApp(modelData)
+                        onActivated: inPlace => root.launchApp(modelData, inPlace)
                     }
                 }
 
@@ -352,7 +453,7 @@ Item {
                         required property var modelData
                         required property int index
                         Layout.fillWidth: true
-                        resultIndex: root.appResults.length + index
+                        resultIndex: root.leadingResultCount + root.appResults.length + index
                         title: root.windowTitle(modelData)
                         subtitle: root.windowProgram(modelData)
                         meta: root.workspaceLabel(modelData)
@@ -376,7 +477,7 @@ Item {
                         required property var modelData
                         required property int index
                         Layout.fillWidth: true
-                        resultIndex: root.appResults.length + root.windowResults.length + index
+                        resultIndex: root.leadingResultCount + root.appResults.length + root.windowResults.length + index
                         title: modelData?.label || ""
                         subtitle: modelData?.description || modelData?.action || ""
                         meta: modelData?.path || "Omarchy menu"
@@ -424,6 +525,116 @@ Item {
     }
 
 
+    // The calculator answer, set apart from the result list: the expression as
+    // it reads best, the result large in the accent colour, and a keycap hint.
+    component CalcCard: Rectangle {
+        id: card
+        property var result: null
+        property bool selected: false
+        // inPlace is Shift: copy without opening the calculator.
+        signal activated(bool inPlace)
+
+        implicitHeight: 92
+        radius: 8
+        color: selected ? TuiStyle.accentWash(TuiStyle.accent) : TuiStyle.surfaceSubtle
+
+        onSelectedChanged: if (card.selected) root.selectedRowItem = card
+        border.width: 1
+        border.color: selected ? TuiStyle.accent : TuiStyle.surfaceRaised
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            spacing: 14
+
+            Rectangle {
+                Layout.preferredWidth: 44
+                Layout.preferredHeight: 44
+                radius: 10
+                color: TuiStyle.accentWash(TuiStyle.accent)
+
+                NerdIcon {
+                    anchors.centerIn: parent
+                    symbol: "calculator"
+                    iconSize: 22
+                    color: TuiStyle.accent
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 0
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: card.result?.pretty ?? ""
+                    color: TuiStyle.dim
+                    font.pixelSize: 13
+                    elide: Text.ElideLeft
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: card.result ? `= ${card.result.grouped}` : ""
+                    color: TuiStyle.accent
+                    font.pixelSize: 28
+                    font.weight: Font.DemiBold
+                    font.features: { "tnum": 1 }
+                    elide: Text.ElideLeft
+                }
+            }
+
+            Rectangle {
+                Layout.alignment: Qt.AlignVCenter
+                implicitWidth: keyRow.implicitWidth + 16
+                implicitHeight: 26
+                radius: 6
+                color: "transparent"
+                border.width: 1
+                border.color: card.selected ? TuiStyle.accent : TuiStyle.inactiveBorder
+
+                RowLayout {
+                    id: keyRow
+                    anchors.centerIn: parent
+                    spacing: 6
+
+                    StyledText {
+                        text: "\u23CE"
+                        color: card.selected ? TuiStyle.accent : TuiStyle.dim
+                        font.pixelSize: 13
+                    }
+
+                    StyledText {
+                        text: "Open"
+                        color: card.selected ? TuiStyle.fg : TuiStyle.dim
+                        font.pixelSize: 12
+                    }
+
+                    StyledText {
+                        text: "\u21E7\u23CE"
+                        color: card.selected ? TuiStyle.accent : TuiStyle.dim
+                        font.pixelSize: 13
+                    }
+
+                    StyledText {
+                        text: "Copy"
+                        color: card.selected ? TuiStyle.fg : TuiStyle.dim
+                        font.pixelSize: 12
+                    }
+                }
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onEntered: root.selectedIndex = 0
+            onClicked: mouse => card.activated((mouse.modifiers & Qt.ShiftModifier) !== 0)
+        }
+    }
+
     component SearchResultRow: Rectangle {
         id: row
         required property int resultIndex
@@ -433,28 +644,49 @@ Item {
         property string iconSource: ""
         property string symbol: "apps"
         property bool selected: false
-        signal activated()
+        // inPlace is true for Shift+click; only app rows use it.
+        signal activated(bool inPlace)
 
-        implicitHeight: 54
+        // The selected row grows: taller, larger icon and title, accent border.
+        // Sizes are animated rather than scaled so the text keeps its hinting
+        // instead of being resampled.
+        readonly property real grow: selected ? 1 : 0
+
+        implicitHeight: 54 + 22 * grow
         radius: 6
         color: selected ? TuiStyle.selection : "transparent"
+        border.width: selected ? 1 : 0
+        border.color: TuiStyle.accent
+
+        onSelectedChanged: if (row.selected) root.selectedRowItem = row
+
+        Behavior on implicitHeight {
+            NumberAnimation { duration: 110; easing.type: Easing.OutCubic }
+        }
 
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: 10
+            anchors.leftMargin: 10 + 2 * row.grow
             anchors.rightMargin: 12
             spacing: 11
 
             Rectangle {
-                Layout.preferredWidth: 34
-                Layout.preferredHeight: 34
+                Layout.preferredWidth: 34 + 14 * row.grow
+                Layout.preferredHeight: 34 + 14 * row.grow
                 radius: 6
+
+                Behavior on Layout.preferredWidth {
+                    NumberAnimation { duration: 110; easing.type: Easing.OutCubic }
+                }
+                Behavior on Layout.preferredHeight {
+                    NumberAnimation { duration: 110; easing.type: Easing.OutCubic }
+                }
                 color: row.selected ? TuiStyle.accentWash(TuiStyle.accent) : TuiStyle.surfaceSubtle
 
                 Image {
                     anchors.centerIn: parent
-                    width: 24
-                    height: 24
+                    width: 24 + 10 * row.grow
+                    height: 24 + 10 * row.grow
                     source: row.iconSource
                     fillMode: Image.PreserveAspectFit
                     smooth: true
@@ -464,7 +696,7 @@ Item {
                 NerdIcon {
                     anchors.centerIn: parent
                     symbol: row.symbol
-                    iconSize: 21
+                    iconSize: 21 + 9 * row.grow
                     color: row.selected ? TuiStyle.accent : TuiStyle.dim
                     visible: row.iconSource.length === 0
                 }
@@ -478,7 +710,8 @@ Item {
                     Layout.fillWidth: true
                     text: row.title
                     color: TuiStyle.fg
-                    font.pixelSize: 14
+                    font.pixelSize: 14 + 5 * row.grow
+                    font.weight: row.selected ? Font.DemiBold : Font.Normal
                     elide: Text.ElideRight
                 }
 
@@ -487,7 +720,7 @@ Item {
                     visible: text.length > 0
                     text: row.subtitle
                     color: TuiStyle.dim
-                    font.pixelSize: 12
+                    font.pixelSize: 12 + 2 * row.grow
                     elide: Text.ElideRight
                 }
             }
@@ -507,7 +740,7 @@ Item {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onEntered: root.selectedIndex = row.resultIndex
-            onClicked: row.activated()
+            onClicked: mouse => row.activated((mouse.modifiers & Qt.ShiftModifier) !== 0)
         }
     }
 }

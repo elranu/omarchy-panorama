@@ -1,4 +1,4 @@
-# Panorama validation procedure
+# Vista validation procedure
 
 This is the fixed acceptance checklist to run after every change to the plugin.
 It covers static checks, automated tests, Shell runtime checks, and Overview

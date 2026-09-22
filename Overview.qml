@@ -11,6 +11,7 @@ import Quickshell.Hyprland
 import Quickshell.Hyprland._GlobalShortcuts 0.0
 import "ColorUtils.js" as ColorUtils
 import "SearchKeys.js" as SearchKeys
+import "MiniApps.js" as MiniApps
 
 Scope {
     id: overviewScope
@@ -92,6 +93,13 @@ Scope {
         }
     }
 
+    // The Overview usually closes right after a copy, so Omarchy's OSD card is
+    // the confirmation. -q keeps it best-effort when the shell IPC is busy.
+    function showCopiedOsd(value) {
+        Quickshell.execDetached(["omarchy-shell", "-q", "osd", "show",
+            JSON.stringify({ icon: "\uF1EC", message: `Copied ${value}`, duration: 1400 })]);
+    }
+
     function isFocusedScreen(screen) {
         return screen?.name === overviewScope.focusedScreen?.name;
     }
@@ -152,6 +160,8 @@ Scope {
                 GlobalStates.overviewAnchorMonitorName = "";
                 GlobalStates.overviewPendingWorkspaceMonitorById = ({});
                 GlobalStates.overviewPendingOccupiedWorkspaces = [];
+                GlobalStates.overviewMiniApp = "";
+                GlobalStates.overviewMiniAppInput = "";
             }
             overviewScope.setNativeMouseGuard(GlobalStates.overviewOpen);
         }
@@ -315,6 +325,17 @@ Scope {
                 focus: panelWindow.isFocusedOverviewWindow
 
                 Keys.onPressed: event => {
+                    // A mini app owns the keyboard while it is open: Escape
+                    // closes it, it handles what it knows, and the rest is
+                    // swallowed so nothing navigates the grid behind it.
+                    if (GlobalStates.overviewMiniApp.length > 0) {
+                        if (event.key === Qt.Key_Escape)
+                            GlobalStates.overviewMiniApp = "";
+                        else if (miniAppLoader.item?.handleKey)
+                            miniAppLoader.item.handleKey(event);
+                        event.accepted = true;
+                        return;
+                    }
                     if (event.key === Qt.Key_Escape) {
                         if (GlobalStates.overviewKillMode) {
                             GlobalStates.overviewKillMode = false;
@@ -367,7 +388,9 @@ Scope {
                     // ── Search mode keyboard handling ──
                     if (GlobalStates.overviewSearchMode) {
                         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                            overviewSearch.activateSelection();
+                            // Shift+Enter launches into the current workspace
+                            // instead of a new one.
+                            overviewSearch.activateSelection((event.modifiers & Qt.ShiftModifier) !== 0);
                             event.accepted = true;
                             return;
                         }
@@ -527,6 +550,30 @@ Scope {
                     sourceComponent: OverviewWidget {
                         screen: panelWindow.screen
                         visible: GlobalStates.overviewOpen
+                    }
+                }
+
+                // Mini apps (MiniApps.js) draw over the grid and the search.
+                Loader {
+                    id: miniAppLoader
+                    anchors.fill: parent
+                    z: 1300
+                    active: panelWindow.isFocusedOverviewWindow
+                        && GlobalStates.overviewMiniApp.length > 0
+                    source: active
+                        ? Qt.resolvedUrl(MiniApps.byId(GlobalStates.overviewMiniApp)?.source ?? "")
+                        : ""
+
+                    onLoaded: {
+                        const app = miniAppLoader.item;
+                        if (!app)
+                            return;
+                        if ("expression" in app)
+                            app.expression = GlobalStates.overviewMiniAppInput;
+                        app.closeRequested.connect(() => { GlobalStates.overviewMiniApp = ""; });
+                        if (app.copied)
+                            app.copied.connect(value => overviewScope.showCopiedOsd(value));
+                        overviewKeyHandler.forceActiveFocus();
                     }
                 }
 

@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.2.4
+
+- Renamed to **Vista**. Two other marketplace plugins are also called Panorama,
+  one of them a window overview too. The plugin id (`ranu.panorama`) and the
+  repository URL are unchanged, so existing installs keep working.
+- Mini apps: interactive panels that open over the workspace grid. `MiniApp.qml`
+  is the shared frame (backdrop, title bar, key hints, Escape) and `MiniApps.js`
+  the registry, so a new one is a QML file plus an entry. They are searchable
+  under **Mini apps**.
+- The first mini app is a **Calculator**: a large display, an on-screen keypad,
+  history of recent answers, and a copy button. Typing arithmetic in search
+  still shows the answer as a card; Enter opens the calculator with it loaded
+  and Shift+Enter just copies. Enter inside the calculator copies the answer,
+  keeps it in the history and leaves it ready for the next operation, with
+  Omarchy's OSD confirming the copy. Numbers may carry an exponent (`1.5e3`),
+  so a very large answer can still start the next operation. Expressions go
+  through a small parser, never `eval`.
+- Shift+Enter (or Shift+click) opens an app on the current workspace; Enter
+  still opens it on a new one. The selected result shows both keys.
+- The selected search result grows: taller row, larger icon and title, accent
+  border, so it is obvious what Enter will act on. The list scrolls by the
+  selected row's real geometry, since rows no longer share one height.
+- Window icons are resolved through the desktop entries instead of assuming the
+  window class is an icon name. Applications whose class differs from their
+  icon (Brave is `brave-browser` with icon `brave-desktop`, VS Code is `Code`
+  with `vscode`) showed the generic placeholder in the Overview and in search.
+
 ## 0.2.3
 
 - The top-bar workspace buttons are no longer destroyed and recreated when

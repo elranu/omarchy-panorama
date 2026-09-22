@@ -15,6 +15,7 @@ Text {
         case "terminal": return "\uF120";            // fa-terminal
         case "search": return "\uF002";              // fa-search
         case "menu": return "\uF0C9";                // fa-bars
+        case "calculator": return "\uF1EC";          // fa-calculator
         default: return "\uF00A";                     // fa-th-large
         }
     }
