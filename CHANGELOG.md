@@ -6,8 +6,8 @@
   GitHub redirects the old URL, and the plugin id (`ranu.panorama`) and state
   directory are unchanged, so installs and saved workspace order survive.
 - Renamed to **Vista**. Two other marketplace plugins are also called Panorama,
-  one of them a window overview too. The plugin id (`ranu.panorama`) and the
-  repository URL are unchanged, so existing installs keep working.
+  one of them a window overview too. The plugin id (`ranu.panorama`) is
+  unchanged, so existing installs keep working.
 - Mini apps: interactive panels that open over the workspace grid. `MiniApp.qml`
   is the shared frame (backdrop, title bar, key hints, Escape) and `MiniApps.js`
   the registry, so a new one is a QML file plus an entry. They are searchable
