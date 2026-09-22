@@ -1,0 +1,188 @@
+pragma ComponentBehavior: Bound
+import "."
+
+import QtQuick
+import QtQuick.Layouts
+
+// Shared frame for Overview mini apps: a centred panel over the workspace grid
+// with a title bar, a content area and a footer of key hints. A mini app only
+// declares its own content and hints; the frame owns the dimmed backdrop, the
+// sizing and Escape.
+//
+// The frame does not take keyboard focus itself. Overview.qml routes keys to
+// the open mini app, so each app handles its own keys and this one stays a
+// plain visual container.
+Item {
+    id: root
+
+    property string title: ""
+    property string subtitle: ""
+    property string icon: "apps"
+    property real contentWidth: 620
+    property real contentHeight: 460
+    // Pairs of { key, label } drawn as keycaps along the bottom.
+    property var hints: []
+
+    default property alias content: contentArea.data
+
+    signal closeRequested()
+
+    anchors.fill: parent
+
+    // Darkens the grid behind the panel and swallows clicks that miss it.
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        onClicked: root.closeRequested()
+
+        Rectangle {
+            anchors.fill: parent
+            color: TuiStyle.bg
+            opacity: 0.55
+        }
+    }
+
+    Rectangle {
+        id: panel
+        anchors.centerIn: parent
+        width: Math.min(root.contentWidth, root.width - 80)
+        height: Math.min(root.contentHeight, root.height - 120)
+        radius: 10
+        color: TuiStyle.bg
+        border.width: 1
+        border.color: TuiStyle.accent
+
+        // Clicks inside the panel must not reach the backdrop above.
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {}
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 18
+            spacing: 14
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+
+                Rectangle {
+                    Layout.preferredWidth: 38
+                    Layout.preferredHeight: 38
+                    radius: 9
+                    color: TuiStyle.accentWash(TuiStyle.accent)
+
+                    NerdIcon {
+                        anchors.centerIn: parent
+                        symbol: root.icon
+                        iconSize: 20
+                        color: TuiStyle.accent
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 0
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: root.title
+                        color: TuiStyle.fg
+                        font.pixelSize: 17
+                        font.weight: Font.DemiBold
+                        elide: Text.ElideRight
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        visible: root.subtitle.length > 0
+                        text: root.subtitle
+                        color: TuiStyle.dim
+                        font.pixelSize: 12
+                        elide: Text.ElideRight
+                    }
+                }
+
+                MiniAppKeycap {
+                    keyLabel: "Esc"
+                    label: "Close"
+                    onActivated: root.closeRequested()
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: TuiStyle.inactiveBorder
+                opacity: TuiStyle.dividerOpacity
+            }
+
+            Item {
+                id: contentArea
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                visible: root.hints.length > 0
+                spacing: 8
+
+                Item { Layout.fillWidth: true }
+
+                Repeater {
+                    model: root.hints
+
+                    MiniAppKeycap {
+                        required property var modelData
+                        keyLabel: modelData?.key ?? ""
+                        label: modelData?.label ?? ""
+                    }
+                }
+            }
+        }
+    }
+
+    component MiniAppKeycap: Rectangle {
+        id: cap
+        property string keyLabel: ""
+        property string label: ""
+        signal activated()
+
+        implicitWidth: capRow.implicitWidth + 16
+        implicitHeight: 26
+        radius: 6
+        color: capArea.containsMouse && cap.activated ? TuiStyle.surfaceHover : "transparent"
+        border.width: 1
+        border.color: TuiStyle.inactiveBorder
+
+        RowLayout {
+            id: capRow
+            anchors.centerIn: parent
+            spacing: 6
+
+            StyledText {
+                text: cap.keyLabel
+                color: TuiStyle.accent
+                font.pixelSize: 12
+                font.weight: Font.DemiBold
+            }
+
+            StyledText {
+                visible: cap.label.length > 0
+                text: cap.label
+                color: TuiStyle.dim
+                font.pixelSize: 12
+            }
+        }
+
+        MouseArea {
+            id: capArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: cap.activated()
+        }
+    }
+}

@@ -140,12 +140,22 @@ Applications open on a new, empty workspace when you press Enter. Press
 **Shift+Enter** (or Shift+click the result) to open the app on the current
 workspace instead.
 
-Typing arithmetic turns the first result into a calculator: `12*3+4`,
+Typing arithmetic shows the answer as the first result: `12*3+4`,
 `(1500-200)/4`, `2^10`, or `200*15%` (percent divides by 100). `x`, `×` and `÷`
 also work, and a comma is read as a decimal separator (`3,5*2`). Press Enter to
-copy the result to the clipboard. Start the query with `=` to force a
-calculation, for example `=2048`. Expressions are parsed by the plugin itself,
-never evaluated as code.
+copy the result, or Enter to open the **Calculator** mini app with that
+expression loaded. Start the query with `=` to force a calculation, for example
+`=2048`. Expressions are parsed by the plugin itself, never evaluated as code.
+
+### Mini apps
+
+Mini apps are small interactive panels that open over the workspace grid. Search
+for one by name (the Calculator answers to `calc`) and press Enter; Escape
+closes it and leaves the Overview open. Inside the Calculator you can type or
+click the keypad, Enter copies the answer and keeps it in the history, and the
+answer stays ready as the start of the next operation.
+
+Adding one is a QML file based on `MiniApp.qml` plus an entry in `MiniApps.js`.
 
 The search index reads Omarchy's menu through `$OMARCHY_PATH`, so it does not
 assume `/usr/share/omarchy` and can be used on NixOS installations.

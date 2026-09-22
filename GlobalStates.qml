@@ -23,6 +23,10 @@ Singleton {
     property bool overviewKillMode: false
     property string overviewAnchorMonitorName: ""
     property bool overviewSearchMode: false
+    // Open Overview mini app (see MiniApps.js), "" when none, plus the text it
+    // was opened with.
+    property string overviewMiniApp: ""
+    property string overviewMiniAppInput: ""
     // The plugin's optimized visual ordering is the default. The persisted
     // setting can still switch to the native Omarchy order explicitly.
     property string overviewSortMode: "legacy"

@@ -20,5 +20,7 @@ Overview 1.0 Overview.qml
 OverviewSearch 1.0 OverviewSearch.qml
 OverviewWidget 1.0 OverviewWidget.qml
 OverviewWindow 1.0 OverviewWindow.qml
+MiniApp 1.0 MiniApp.qml
+CalculatorApp 1.0 CalculatorApp.qml
 StyledText 1.0 StyledText.qml
 StyledImage 1.0 StyledImage.qml

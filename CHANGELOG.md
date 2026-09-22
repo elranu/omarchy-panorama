@@ -5,11 +5,17 @@
 - Renamed to **Vista**. Two other marketplace plugins are also called Panorama,
   one of them a window overview too. The plugin id (`ranu.panorama`) and the
   repository URL are unchanged, so existing installs keep working.
-- Search has a calculator: arithmetic such as `12*3+4`, `2^10` or `200*15%`
-  shows up as a card above the results, with the expression pretty-printed
-  (`12 × 3 + 4`) and the answer large, digits grouped (`1 048 576`). Enter
-  copies the plain number and Omarchy's OSD confirms it. A leading `=` forces
-  a calculation. Expressions go through a small parser, never `eval`.
+- Mini apps: interactive panels that open over the workspace grid. `MiniApp.qml`
+  is the shared frame (backdrop, title bar, key hints, Escape) and `MiniApps.js`
+  the registry, so a new one is a QML file plus an entry. They are searchable
+  under **Mini apps**.
+- The first mini app is a **Calculator**: a large display, an on-screen keypad,
+  history of recent answers, and a copy button. Typing arithmetic in search
+  still shows the answer as a card; Enter opens the calculator with it loaded
+  and Shift+Enter just copies. Enter inside the calculator copies the answer,
+  keeps it in the history and leaves it ready for the next operation, with
+  Omarchy's OSD confirming the copy. Expressions go through a small parser,
+  never `eval`.
 - Shift+Enter (or Shift+click) opens an app on the current workspace; Enter
   still opens it on a new one. The selected result shows both keys.
 

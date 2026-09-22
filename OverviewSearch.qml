@@ -6,6 +6,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
 import "Calculator.js" as Calculator
+import "MiniApps.js" as MiniApps
 
 Item {
     id: root
@@ -35,7 +36,11 @@ Item {
     // "=" forces it. Mutually exclusive with command mode, so both use index 0.
     readonly property var calcResult: hasQuery && !commandMode ? Calculator.evaluate(normalizedQuery) : null
     readonly property int calcResultCount: calcResult ? 1 : 0
+    readonly property var miniAppResults: hasQuery && !commandMode
+        ? MiniApps.search(normalizedQuery, 3)
+        : []
     readonly property int leadingResultCount: commandResultCount + calcResultCount
+        + miniAppResults.length
     readonly property int totalResults: leadingResultCount + appResults.length
         + windowResults.length + menuResults.length
     readonly property int popupWidth: Math.min(760, Math.max(520, width - 80))
@@ -91,6 +96,19 @@ Item {
         });
     }
 
+    function openMiniApp(app, input) {
+        if (!app)
+            return;
+        GlobalStates.overviewMiniAppInput = String(input ?? "");
+        GlobalStates.overviewMiniApp = app.id;
+        GlobalStates.overviewSearchMode = false;
+        root.closeRequested();
+    }
+
+    function openCalculator() {
+        root.openMiniApp(MiniApps.byId("calculator"), calcResult ? calcResult.expression : normalizedQuery);
+    }
+
     // "--" keeps a negative result such as -6 from being read as an option.
     // The Overview closes on copy, so Omarchy's OSD card confirms it; -q keeps
     // that best-effort if the shell's IPC is unavailable.
@@ -142,7 +160,17 @@ Item {
             return;
         }
         if (calcResultCount > 0 && selectedIndex === 0) {
-            copyCalcResult();
+            // Enter opens the calculator so the sum can be carried on;
+            // Shift+Enter is the shortcut that just copies and leaves.
+            if (inPlace === true)
+                copyCalcResult();
+            else
+                openCalculator();
+            return;
+        }
+        const miniAppIndex = selectedIndex - commandResultCount - calcResultCount;
+        if (miniAppIndex >= 0 && miniAppIndex < miniAppResults.length) {
+            openMiniApp(miniAppResults[miniAppIndex], "");
             return;
         }
         const appIndex = selectedIndex - leadingResultCount;
@@ -347,7 +375,31 @@ Item {
                     visible: root.calcResultCount > 0
                     selected: root.selectedIndex === 0
                     result: root.calcResult
-                    onActivated: root.copyCalcResult()
+                    onActivated: inPlace => inPlace ? root.copyCalcResult() : root.openCalculator()
+                }
+
+                SearchSectionHeader {
+                    Layout.fillWidth: true
+                    visible: root.miniAppResults.length > 0
+                    label: "Mini apps"
+                    count: root.miniAppResults.length
+                }
+
+                Repeater {
+                    model: root.miniAppResults
+
+                    SearchResultRow {
+                        required property var modelData
+                        required property int index
+                        Layout.fillWidth: true
+                        resultIndex: root.commandResultCount + root.calcResultCount + index
+                        title: modelData?.title || ""
+                        subtitle: modelData?.subtitle || ""
+                        meta: "Opens in Overview"
+                        symbol: modelData?.icon || "apps"
+                        selected: root.selectedIndex === resultIndex
+                        onActivated: root.openMiniApp(modelData, "")
+                    }
                 }
 
                 SearchSectionHeader {
@@ -467,7 +519,8 @@ Item {
         id: card
         property var result: null
         property bool selected: false
-        signal activated()
+        // inPlace is Shift: copy without opening the calculator.
+        signal activated(bool inPlace)
 
         implicitHeight: 92
         radius: 8
@@ -539,6 +592,18 @@ Item {
                     }
 
                     StyledText {
+                        text: "Open"
+                        color: card.selected ? TuiStyle.fg : TuiStyle.dim
+                        font.pixelSize: 12
+                    }
+
+                    StyledText {
+                        text: "\u21E7\u23CE"
+                        color: card.selected ? TuiStyle.accent : TuiStyle.dim
+                        font.pixelSize: 13
+                    }
+
+                    StyledText {
                         text: "Copy"
                         color: card.selected ? TuiStyle.fg : TuiStyle.dim
                         font.pixelSize: 12
@@ -552,7 +617,7 @@ Item {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onEntered: root.selectedIndex = 0
-            onClicked: card.activated()
+            onClicked: mouse => card.activated((mouse.modifiers & Qt.ShiftModifier) !== 0)
         }
     }
 
