@@ -367,7 +367,9 @@ Scope {
                     // ── Search mode keyboard handling ──
                     if (GlobalStates.overviewSearchMode) {
                         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                            overviewSearch.activateSelection();
+                            // Shift+Enter launches into the current workspace
+                            // instead of a new one.
+                            overviewSearch.activateSelection((event.modifiers & Qt.ShiftModifier) !== 0);
                             event.accepted = true;
                             return;
                         }

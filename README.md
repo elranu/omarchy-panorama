@@ -1,8 +1,11 @@
-# Panorama
+# Vista
+
+*Formerly Panorama. The plugin id (`ranu.panorama`) and the repository URL
+are unchanged, so existing installs keep working.*
 
 **Press Win/Super to open the Overview on every monitor.**
 
-![Panorama open on two monitors](preview.png)
+![Vista open on two monitors](preview.png)
 
 **Drag windows between workspaces, including onto another monitor.**
 
@@ -12,7 +15,7 @@
 
 ![Keyboard navigation and search](docs/media/keyboard-and-search.gif)
 
-Panorama is a multi-monitor workspace overview for Omarchy. It provides a full-screen overview on every monitor with live window previews, wallpaper-backed workspace cards, MRU workspace ordering, drag-and-drop between workspaces and monitors, search, and automatic keyboard integration.
+Vista is a multi-monitor workspace overview for Omarchy. It provides a full-screen overview on every monitor with live window previews, wallpaper-backed workspace cards, MRU workspace ordering, drag-and-drop between workspaces and monitors, search, and automatic keyboard integration.
 
 See [`CHANGELOG.md`](CHANGELOG.md) for release notes.
 
@@ -31,7 +34,8 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release notes.
 - Keyboard navigation with arrows, H/J/K/L, Tab, Enter, Space, and Escape.
 - Windows-style MRU ordering for workspaces across Overview, the top bar,
   Win+number, Win+Tab, and Win+Shift+Tab.
-- Search for applications, open windows, and Omarchy menu actions from Overview.
+- Search for applications, open windows, and Omarchy menu actions from Overview,
+  with a built-in calculator.
 - Per-monitor workspace previews, configurable from the gear panel.
 - Right-click any part of the top-bar workspace widget to open Overview as a
   mouse fallback when the keyboard shortcut is unavailable.
@@ -43,10 +47,10 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release notes.
 
 - Omarchy 4 (Hyprland with Lua configuration and the Omarchy Quickshell shell).
 - Everything else it calls ships with Omarchy: `hyprctl`, `uwsm-app` and
-  `gtk-launch` to launch applications from search, and `xdg-terminal-exec` for
-  `>command` searches.
+  `gtk-launch` to launch applications from search, `xdg-terminal-exec` for
+  `>command` searches, and `wl-copy` to copy calculator results.
 
-Panorama needs no root privileges, installs no services, downloads nothing,
+Vista needs no root privileges, installs no services, downloads nothing,
 and never edits your Hyprland configuration files. Its bindings exist only at
 runtime and are removed when the plugin is disabled.
 
@@ -60,9 +64,9 @@ After enabling, the plugin registers its Hyprland bindings automatically. Users 
 
 ### Switching from Overview Workspaces
 
-Panorama has its own plugin id (`ranu.panorama`), so `plugin add` installs it
+Vista has its own plugin id (`ranu.panorama`), so `plugin add` installs it
 next to Overview Workspaces instead of replacing it, and both would fight over
-the same Win/Super bindings. Remove the original first, then add Panorama:
+the same Win/Super bindings. Remove the original first, then add Vista:
 
 ```sh
 omarchy plugin remove hancore.overview-workspaces
@@ -132,6 +136,17 @@ behavior where any printable character starts search, turn off **Keep h/j/k/l
 for navigation** in the gear panel. Prefix a query with `>` to run it as a
 terminal command.
 
+Applications open on a new, empty workspace when you press Enter. Press
+**Shift+Enter** (or Shift+click the result) to open the app on the current
+workspace instead.
+
+Typing arithmetic turns the first result into a calculator: `12*3+4`,
+`(1500-200)/4`, `2^10`, or `200*15%` (percent divides by 100). `x`, `×` and `÷`
+also work, and a comma is read as a decimal separator (`3,5*2`). Press Enter to
+copy the result to the clipboard. Start the query with `=` to force a
+calculation, for example `=2048`. Expressions are parsed by the plugin itself,
+never evaluated as code.
+
 The search index reads Omarchy's menu through `$OMARCHY_PATH`, so it does not
 assume `/usr/share/omarchy` and can be used on NixOS installations.
 
@@ -183,11 +198,11 @@ node --test
 
 ## Credits
 
-Panorama is a fork of
+Vista (formerly Panorama) is a fork of
 [iamcheyan/omarchy-overview-workspaces](https://github.com/iamcheyan/omarchy-overview-workspaces)
 (Overview Workspaces, by HANCORE), which is published separately in the Omarchy
-plugin marketplace. Panorama adds multi-monitor support, such as dragging windows
+plugin marketplace. Vista adds multi-monitor support, such as dragging windows
 between monitors, and follows its own release line. Both are MIT licensed.
 
-Panorama and Overview Workspaces take over the same Win/Super bindings, so enable
+Vista and Overview Workspaces take over the same Win/Super bindings, so enable
 only one of them at a time.

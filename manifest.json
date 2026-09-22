@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "id": "ranu.panorama",
-  "name": "Panorama",
-  "version": "0.2.3",
+  "name": "Vista",
+  "version": "0.2.4",
   "author": "elranu",
   "license": "MIT",
   "description": "Multi-monitor workspace overview for Omarchy: live thumbnails, drag windows across workspaces and monitors, MRU ordering, search, and automatic Win-key integration.",
@@ -21,7 +21,7 @@
     "service": "KeybindingService.qml"
   },
   "barWidget": {
-    "displayName": "Panorama workspaces",
+    "displayName": "Vista workspaces",
     "description": "Workspace buttons that follow MRU order. Turn \"Occupied workspaces only\" off to also show native empty slots 1–10; New workspace stays last.",
     "category": "Desktop",
     "allowMultiple": false,

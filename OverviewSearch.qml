@@ -5,6 +5,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
+import "Calculator.js" as Calculator
 
 Item {
     id: root
@@ -30,7 +31,12 @@ Item {
         ? MenuSearch.query(normalizedQuery, maxMenuResults)
         : []
     readonly property int commandResultCount: commandMode && commandText.length > 0 ? 1 : 0
-    readonly property int totalResults: commandResultCount + appResults.length
+    // Arithmetic in the query, such as 12*3+4, becomes the first result;
+    // "=" forces it. Mutually exclusive with command mode, so both use index 0.
+    readonly property var calcResult: hasQuery && !commandMode ? Calculator.evaluate(normalizedQuery) : null
+    readonly property int calcResultCount: calcResult ? 1 : 0
+    readonly property int leadingResultCount: commandResultCount + calcResultCount
+    readonly property int totalResults: leadingResultCount + appResults.length
         + windowResults.length + menuResults.length
     readonly property int popupWidth: Math.min(760, Math.max(520, width - 80))
 
@@ -70,14 +76,27 @@ Item {
         resultsFlickable.ensureVisible(selectedIndex);
     }
 
-    function launchApp(app) {
+    // By default an app opens on a new, empty workspace. With inPlace (Shift+Enter
+    // or Shift+click) it opens on the workspace that was current when the
+    // Overview opened: arrow navigation only moves the selection, it never
+    // switches workspace, so Hyprland's focused workspace is still that one.
+    function launchApp(app, inPlace) {
         if (!app)
             return;
-        Hyprland.dispatch('hl.dsp.focus({ workspace = "empty" })');
+        if (!inPlace)
+            Hyprland.dispatch('hl.dsp.focus({ workspace = "empty" })');
         Qt.callLater(() => {
             AppSearch.launchApp(app);
             GlobalStates.overviewOpen = false;
         });
+    }
+
+    // "--" keeps a negative result such as -6 from being read as an option.
+    function copyCalcResult() {
+        if (!calcResult)
+            return;
+        Quickshell.execDetached(["wl-copy", "--", calcResult.display]);
+        GlobalStates.overviewOpen = false;
     }
 
     function focusWindow(win) {
@@ -113,16 +132,21 @@ Item {
         GlobalStates.overviewOpen = false;
     }
 
-    function activateSelection() {
+    function activateSelection(inPlace) {
         if (commandResultCount > 0) {
             executeCommand();
             return;
         }
-        if (selectedIndex < appResults.length) {
-            launchApp(appResults[selectedIndex]);
+        if (calcResultCount > 0 && selectedIndex === 0) {
+            copyCalcResult();
             return;
         }
-        const windowIndex = selectedIndex - appResults.length;
+        const appIndex = selectedIndex - leadingResultCount;
+        if (appIndex >= 0 && appIndex < appResults.length) {
+            launchApp(appResults[appIndex], inPlace === true);
+            return;
+        }
+        const windowIndex = appIndex - appResults.length;
         if (windowIndex >= 0 && windowIndex < windowResults.length) {
             focusWindow(windowResults[windowIndex]);
             return;
@@ -240,7 +264,7 @@ Item {
                 Layout.fillWidth: true
                 text: root.hasQuery
                     ? root.query
-                    : "Search apps, windows and the menu    >  shell command"
+                    : "Search apps, windows and the menu    =  calculate    >  shell command"
                 color: root.hasQuery ? TuiStyle.fg : TuiStyle.dim
                 font.pixelSize: 15
                 elide: Text.ElideLeft
@@ -314,6 +338,18 @@ Item {
                     onActivated: root.executeCommand()
                 }
 
+                SearchResultRow {
+                    Layout.fillWidth: true
+                    visible: root.calcResultCount > 0
+                    resultIndex: 0
+                    title: root.calcResult ? `= ${root.calcResult.display}` : ""
+                    subtitle: root.calcResult ? root.calcResult.expression : ""
+                    meta: "Enter copies"
+                    symbol: "calculator"
+                    selected: root.selectedIndex === resultIndex
+                    onActivated: root.copyCalcResult()
+                }
+
                 SearchSectionHeader {
                     Layout.fillWidth: true
                     visible: root.appResults.length > 0
@@ -328,13 +364,14 @@ Item {
                         required property var modelData
                         required property int index
                         Layout.fillWidth: true
-                        resultIndex: index
+                        resultIndex: root.leadingResultCount + index
                         title: modelData?.name || ""
                         subtitle: modelData?.comment || modelData?.genericName || modelData?.id || ""
-                        meta: "New workspace"
+                        // The selected row spells out both keys; the others stay short.
+                        meta: selected ? "Enter new · Shift+Enter here" : "New workspace"
                         iconSource: AppSearch.iconSource(modelData?.icon || "")
                         selected: root.selectedIndex === resultIndex
-                        onActivated: root.launchApp(modelData)
+                        onActivated: inPlace => root.launchApp(modelData, inPlace)
                     }
                 }
 
@@ -352,7 +389,7 @@ Item {
                         required property var modelData
                         required property int index
                         Layout.fillWidth: true
-                        resultIndex: root.appResults.length + index
+                        resultIndex: root.leadingResultCount + root.appResults.length + index
                         title: root.windowTitle(modelData)
                         subtitle: root.windowProgram(modelData)
                         meta: root.workspaceLabel(modelData)
@@ -376,7 +413,7 @@ Item {
                         required property var modelData
                         required property int index
                         Layout.fillWidth: true
-                        resultIndex: root.appResults.length + root.windowResults.length + index
+                        resultIndex: root.leadingResultCount + root.appResults.length + root.windowResults.length + index
                         title: modelData?.label || ""
                         subtitle: modelData?.description || modelData?.action || ""
                         meta: modelData?.path || "Omarchy menu"
@@ -433,7 +470,8 @@ Item {
         property string iconSource: ""
         property string symbol: "apps"
         property bool selected: false
-        signal activated()
+        // inPlace is true for Shift+click; only app rows use it.
+        signal activated(bool inPlace)
 
         implicitHeight: 54
         radius: 6
@@ -507,7 +545,7 @@ Item {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onEntered: root.selectedIndex = row.resultIndex
-            onClicked: row.activated()
+            onClicked: mouse => row.activated((mouse.modifiers & Qt.ShiftModifier) !== 0)
         }
     }
 }

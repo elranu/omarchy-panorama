@@ -7,12 +7,12 @@
 
 ## Original plugin status
 
-Panorama is a fork of Overview Workspaces. The original plugin was approved and
+Vista (formerly Panorama) is a fork of Overview Workspaces. The original plugin was approved and
 verified, and is published at:
 https://plugins.omarchy.org/plugin.html?id=hancore.overview-workspaces
 
 The marketplace verification applies to the published snapshot and is not a
-security audit, and it does not carry over to this fork: Panorama is reviewed as
+security audit, and it does not carry over to this fork: Vista is reviewed as
 its own listing.
 
 ## 1. How marketplace review works

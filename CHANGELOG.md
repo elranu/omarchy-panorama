@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.4
+
+- Renamed to **Vista**. Two other marketplace plugins are also called Panorama,
+  one of them a window overview too. The plugin id (`ranu.panorama`) and the
+  repository URL are unchanged, so existing installs keep working.
+- Search has a calculator: arithmetic such as `12*3+4`, `2^10` or `200*15%`
+  becomes the first result, and Enter copies it to the clipboard. A leading `=`
+  forces a calculation. Expressions go through a small parser, never `eval`.
+- Shift+Enter (or Shift+click) opens an app on the current workspace; Enter
+  still opens it on a new one. The selected result shows both keys.
+
 ## 0.2.3
 
 - The top-bar workspace buttons are no longer destroyed and recreated when
