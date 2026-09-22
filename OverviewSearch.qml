@@ -48,6 +48,12 @@ Item {
     signal searchRequested()
     signal closeRequested()
 
+    // The rendered row for the current selection. Rows differ in height (the
+    // calculator card is 92, a selected result 76, the rest 54) and section
+    // headers sit between them, so scrolling asks the delegate where it is
+    // instead of multiplying an assumed row height.
+    property Item selectedRowItem: null
+
     function windowHaystack(win) {
         const workspace = win?.workspace || {};
         return [
@@ -78,7 +84,8 @@ Item {
         if (totalResults <= 0)
             return;
         selectedIndex = (selectedIndex + delta + totalResults) % totalResults;
-        resultsFlickable.ensureVisible(selectedIndex);
+        // After layout: the newly selected row grows, and its neighbour shrinks.
+        Qt.callLater(resultsFlickable.ensureVisible);
     }
 
     // By default an app opens on a new, empty workspace. With inPlace (Shift+Enter
@@ -344,15 +351,18 @@ Item {
             boundsBehavior: Flickable.StopAtBounds
             clip: true
 
-            function ensureVisible(index) {
-                // Rows are 54 tall, the selected one 76; scrolling to the row
-                // above keeps the grown row fully in view.
-                const rowHeight = 60;
-                const targetY = Math.max(0, index * rowHeight - 28);
-                if (targetY < contentY)
-                    contentY = targetY;
-                else if (targetY + rowHeight > contentY + height)
-                    contentY = Math.min(contentHeight - height, targetY + rowHeight - height);
+            function ensureVisible() {
+                const item = root.selectedRowItem;
+                if (!item || item.height <= 0)
+                    return;
+                const margin = 8;
+                const top = item.y - margin;
+                const bottom = item.y + item.height + margin;
+                const maxContentY = Math.max(0, contentHeight - height);
+                if (top < contentY)
+                    contentY = Math.max(0, top);
+                else if (bottom > contentY + height)
+                    contentY = Math.min(maxContentY, bottom - height);
             }
 
             ColumnLayout {
@@ -527,6 +537,8 @@ Item {
         implicitHeight: 92
         radius: 8
         color: selected ? TuiStyle.accentWash(TuiStyle.accent) : TuiStyle.surfaceSubtle
+
+        onSelectedChanged: if (card.selected) root.selectedRowItem = card
         border.width: 1
         border.color: selected ? TuiStyle.accent : TuiStyle.surfaceRaised
 
@@ -645,6 +657,8 @@ Item {
         color: selected ? TuiStyle.selection : "transparent"
         border.width: selected ? 1 : 0
         border.color: TuiStyle.accent
+
+        onSelectedChanged: if (row.selected) root.selectedRowItem = row
 
         Behavior on implicitHeight {
             NumberAnimation { duration: 110; easing.type: Easing.OutCubic }

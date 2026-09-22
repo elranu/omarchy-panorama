@@ -79,10 +79,15 @@ MiniApp {
             return true;
         }
         const text = String(event.text ?? "");
-        if (text.length === 1 && "0123456789+-*/^%().,x×÷=".indexOf(text) >= 0) {
+        // Same grammar the parser accepts, exponents included, so 1.5e3 can be
+        // typed here and not only seeded from search. Incomplete forms such as
+        // "1e" simply do not evaluate until they are finished.
+        if (text.length === 1 && "0123456789+-*/^%().,x×÷=eE".indexOf(text) >= 0) {
             root.append(text === "=" ? "" : text);
             return true;
         }
+        // C clears, but not the "c" of a number being typed... there is none:
+        // the branch above already consumed every character the parser knows.
         if (text === "c" || text === "C") {
             root.clear();
             return true;
