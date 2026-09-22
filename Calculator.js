@@ -10,7 +10,9 @@
 //   primary := number | "(" expr ")"
 //
 // "x" and "×" multiply, "÷" divides, and a comma is a decimal separator, so
-// "3,5*2" works as typed on a Spanish keyboard.
+// "3,5*2" works as typed on a Spanish keyboard. Numbers may carry an exponent
+// (1.5e3, 2E-4): JavaScript prints large results that way, and the calculator
+// feeds its own answer back in as the start of the next operation.
 
 var MAX_LENGTH = 200;
 
@@ -37,11 +39,24 @@ function tokenize(text) {
                     break;
                 }
             }
-            const raw = text.slice(i, j).replace(",", ".");
-            if (raw === ".")
+            // Exponent, but only when it is complete: "1e5" is a number,
+            // "1e" and "1e+" are not, and neither is the "e" of a word.
+            let end = j;
+            if (j < text.length && (text[j] === "e" || text[j] === "E")) {
+                let k = j + 1;
+                if (k < text.length && (text[k] === "+" || text[k] === "-"))
+                    ++k;
+                let digits = k;
+                while (digits < text.length && text[digits] >= "0" && text[digits] <= "9")
+                    ++digits;
+                if (digits > k)
+                    end = digits;
+            }
+            const raw = text.slice(i, end).replace(",", ".");
+            if (raw === "." || !Number.isFinite(Number(raw)))
                 return null;
             tokens.push({ type: "num", value: Number(raw) });
-            i = j;
+            i = end;
             continue;
         }
         const op = { "+": "+", "-": "-", "*": "*", "x": "*", "X": "*", "×": "*",

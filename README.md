@@ -142,10 +142,10 @@ workspace instead.
 
 Typing arithmetic shows the answer as the first result: `12*3+4`,
 `(1500-200)/4`, `2^10`, or `200*15%` (percent divides by 100). `x`, `×` and `÷`
-also work, and a comma is read as a decimal separator (`3,5*2`). Press Enter to
-copy the result, or Enter to open the **Calculator** mini app with that
-expression loaded. Start the query with `=` to force a calculation, for example
-`=2048`. Expressions are parsed by the plugin itself, never evaluated as code.
+also work, and a comma is read as a decimal separator (`3,5*2`). **Enter** opens
+the **Calculator** mini app with that expression loaded; **Shift+Enter** copies
+the result and closes the Overview. Start the query with `=` to force a
+calculation, for example `=2048`. Expressions are parsed by the plugin itself, never evaluated as code.
 
 ### Mini apps
 

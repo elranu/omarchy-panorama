@@ -60,7 +60,7 @@ test('= forces calculator mode for a bare number', () => {
 });
 
 test('invalid or non-finite input yields nothing', () => {
-    for (const query of ['1/0', '2+', '(1+2', '1+2)', '1..2', '3 4', '2**3', '1e5+1', 'x2+3'])
+    for (const query of ['1/0', '2+', '(1+2', '1+2)', '1..2', '3 4', '2**3', '1e+', '1e', 'x2+3'])
         assert.equal(evaluate(query), null, JSON.stringify(query));
 });
 
@@ -86,4 +86,22 @@ test('large results are grouped for reading, copied without grouping', () => {
     assert.equal(evaluate('1000+1').grouped, '1001');
     assert.equal(evaluate('-50000*2').grouped, '-100\u2009000');
     assert.equal(evaluate('12345,5+1').grouped, '12\u2009346,5');
+});
+
+test('exponents parse, so a large answer can start the next operation', () => {
+    assert.equal(shown('1e5+1'), '100001');
+    assert.equal(shown('2E-2*100'), '2');
+    assert.equal(shown('1.5e3/3'), '500');
+    // 2^70 prints in scientific notation; feeding that back in still works.
+    // The displayed value is rounded to 12 significant digits, so the round
+    // trip is compared on the display, not on the raw double.
+    const big = evaluate('2^70');
+    assert.match(big.display, /e\+21$/);
+    assert.equal(evaluate(`=${big.display}`).display, big.display);
+    assert.equal(evaluate(`=${big.display}/2`).display, evaluate(`=${big.display}`).value / 2 + '');
+});
+
+test('a bare e is not a number', () => {
+    for (const query of ['e+2', '2+e', '1e*2'])
+        assert.equal(evaluate(query), null, JSON.stringify(query));
 });

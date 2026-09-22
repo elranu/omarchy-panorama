@@ -14,8 +14,9 @@
   still shows the answer as a card; Enter opens the calculator with it loaded
   and Shift+Enter just copies. Enter inside the calculator copies the answer,
   keeps it in the history and leaves it ready for the next operation, with
-  Omarchy's OSD confirming the copy. Expressions go through a small parser,
-  never `eval`.
+  Omarchy's OSD confirming the copy. Numbers may carry an exponent (`1.5e3`),
+  so a very large answer can still start the next operation. Expressions go
+  through a small parser, never `eval`.
 - Shift+Enter (or Shift+click) opens an app on the current workspace; Enter
   still opens it on a new one. The selected result shows both keys.
 
