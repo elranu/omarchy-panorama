@@ -1,13 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.2.4
 
 - The repository is now `elranu/omarchy-vista`, matching the plugin's name.
   GitHub redirects the old URL, and the plugin id (`ranu.panorama`) and state
   directory are unchanged, so installs and saved workspace order survive.
-
-## 0.2.4
-
 - Renamed to **Vista**. Two other marketplace plugins are also called Panorama,
   one of them a window overview too. The plugin id (`ranu.panorama`) and the
   repository URL are unchanged, so existing installs keep working.
