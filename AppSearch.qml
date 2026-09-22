@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "AppIcons.js" as AppIcons
 
 // Application lookup for the overview's search mode.
 // Queries DesktopEntries and applies Omarchy's launcher.hides filter so
@@ -98,9 +99,34 @@ Singleton {
         onExited: root.iconIndex = root.pendingIconIndex
     }
 
-    Component.onCompleted: iconIndexScan.running = true
+    Component.onCompleted: {
+        iconIndexScan.running = true;
+        root.rebuildClassIconIndex();
+    }
 
-    function guessIcon(name) { return name || "application-x-executable" }
+    // Window class -> icon name, from the desktop entries (see AppIcons.js).
+    // A class is rarely an icon name: brave-browser's icon is brave-desktop,
+    // Code's is vscode. Rebuilt when the entry list changes, which also covers
+    // applications installed while the shell is running.
+    property var classIconIndex: ({})
+
+    function rebuildClassIconIndex() {
+        root.classIconIndex = AppIcons.buildIndex(DesktopEntries.applications.values || []);
+    }
+
+    Connections {
+        target: DesktopEntries.applications
+        function onValuesChanged() { root.rebuildClassIconIndex(); }
+    }
+
+    function guessIcon(name) {
+        const resolved = AppIcons.resolve(root.classIconIndex, name);
+        if (resolved.length > 0)
+            return resolved;
+        // Some classes really are icon names; iconSource falls back to the
+        // generic icon when they are not.
+        return name || "application-x-executable";
+    }
 
     function entryHaystack(entry) {
         return [

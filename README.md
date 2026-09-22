@@ -42,6 +42,8 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release notes.
 - Re-registers its runtime bindings after a Hyprland configuration reload.
 - Omarchy theme colors and configured icon font.
 - No generic fallback icon is drawn over a window thumbnail when an app has no icon.
+- Window icons come from the desktop entries, so applications whose window class
+  differs from their icon name still show their own icon.
 
 ## Requirements
 

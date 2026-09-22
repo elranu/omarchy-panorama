@@ -19,6 +19,10 @@
   through a small parser, never `eval`.
 - Shift+Enter (or Shift+click) opens an app on the current workspace; Enter
   still opens it on a new one. The selected result shows both keys.
+- Window icons are resolved through the desktop entries instead of assuming the
+  window class is an icon name. Applications whose class differs from their
+  icon (Brave is `brave-browser` with icon `brave-desktop`, VS Code is `Code`
+  with `vscode`) showed the generic placeholder in the Overview and in search.
 
 ## 0.2.3
 
