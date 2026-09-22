@@ -69,3 +69,21 @@ test('unary signs and very long input', () => {
     assert.equal(shown('+3*-2'), '-6');
     assert.equal(evaluate('1+'.repeat(150) + '1'), null);
 });
+
+test('expressions are pretty-printed with typographic operators', () => {
+    assert.equal(evaluate('12*3+4').pretty, '12 × 3 + 4');
+    assert.equal(evaluate('(1500-200)/4').pretty, '(1500 − 200) ÷ 4');
+    assert.equal(evaluate('+3*-2').pretty, '+3 × −2');
+    assert.equal(evaluate('200*15%').pretty, '200 × 15%');
+    assert.equal(evaluate('2^10').pretty, '2^10');
+    assert.equal(evaluate('1,5+1,25').pretty, '1,5 + 1,25');
+});
+
+test('large results are grouped for reading, copied without grouping', () => {
+    const big = evaluate('2^20');
+    assert.equal(big.display, '1048576');
+    assert.equal(big.grouped, '1\u2009048\u2009576');
+    assert.equal(evaluate('1000+1').grouped, '1001');
+    assert.equal(evaluate('-50000*2').grouped, '-100\u2009000');
+    assert.equal(evaluate('12345,5+1').grouped, '12\u2009346,5');
+});

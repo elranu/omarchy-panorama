@@ -92,10 +92,14 @@ Item {
     }
 
     // "--" keeps a negative result such as -6 from being read as an option.
+    // The Overview closes on copy, so Omarchy's OSD card confirms it; -q keeps
+    // that best-effort if the shell's IPC is unavailable.
     function copyCalcResult() {
         if (!calcResult)
             return;
         Quickshell.execDetached(["wl-copy", "--", calcResult.display]);
+        Quickshell.execDetached(["omarchy-shell", "-q", "osd", "show",
+            JSON.stringify({ icon: "\uF1EC", message: `Copied ${calcResult.grouped}`, duration: 1400 })]);
         GlobalStates.overviewOpen = false;
     }
 
@@ -255,9 +259,9 @@ Item {
             spacing: 10
 
             NerdIcon {
-                symbol: root.commandMode ? "terminal" : "search"
+                symbol: root.commandMode ? "terminal" : (root.calcResultCount > 0 ? "calculator" : "search")
                 iconSize: 18
-                color: root.commandMode ? TuiStyle.accent : TuiStyle.dim
+                color: root.commandMode || root.calcResultCount > 0 ? TuiStyle.accent : TuiStyle.dim
             }
 
             StyledText {
@@ -338,15 +342,11 @@ Item {
                     onActivated: root.executeCommand()
                 }
 
-                SearchResultRow {
+                CalcCard {
                     Layout.fillWidth: true
                     visible: root.calcResultCount > 0
-                    resultIndex: 0
-                    title: root.calcResult ? `= ${root.calcResult.display}` : ""
-                    subtitle: root.calcResult ? root.calcResult.expression : ""
-                    meta: "Enter copies"
-                    symbol: "calculator"
-                    selected: root.selectedIndex === resultIndex
+                    selected: root.selectedIndex === 0
+                    result: root.calcResult
                     onActivated: root.copyCalcResult()
                 }
 
@@ -460,6 +460,101 @@ Item {
         }
     }
 
+
+    // The calculator answer, set apart from the result list: the expression as
+    // it reads best, the result large in the accent colour, and a keycap hint.
+    component CalcCard: Rectangle {
+        id: card
+        property var result: null
+        property bool selected: false
+        signal activated()
+
+        implicitHeight: 92
+        radius: 8
+        color: selected ? TuiStyle.accentWash(TuiStyle.accent) : TuiStyle.surfaceSubtle
+        border.width: 1
+        border.color: selected ? TuiStyle.accent : TuiStyle.surfaceRaised
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            spacing: 14
+
+            Rectangle {
+                Layout.preferredWidth: 44
+                Layout.preferredHeight: 44
+                radius: 10
+                color: TuiStyle.accentWash(TuiStyle.accent)
+
+                NerdIcon {
+                    anchors.centerIn: parent
+                    symbol: "calculator"
+                    iconSize: 22
+                    color: TuiStyle.accent
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 0
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: card.result?.pretty ?? ""
+                    color: TuiStyle.dim
+                    font.pixelSize: 13
+                    elide: Text.ElideLeft
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: card.result ? `= ${card.result.grouped}` : ""
+                    color: TuiStyle.accent
+                    font.pixelSize: 28
+                    font.weight: Font.DemiBold
+                    font.features: { "tnum": 1 }
+                    elide: Text.ElideLeft
+                }
+            }
+
+            Rectangle {
+                Layout.alignment: Qt.AlignVCenter
+                implicitWidth: keyRow.implicitWidth + 16
+                implicitHeight: 26
+                radius: 6
+                color: "transparent"
+                border.width: 1
+                border.color: card.selected ? TuiStyle.accent : TuiStyle.inactiveBorder
+
+                RowLayout {
+                    id: keyRow
+                    anchors.centerIn: parent
+                    spacing: 6
+
+                    StyledText {
+                        text: "\u23CE"
+                        color: card.selected ? TuiStyle.accent : TuiStyle.dim
+                        font.pixelSize: 13
+                    }
+
+                    StyledText {
+                        text: "Copy"
+                        color: card.selected ? TuiStyle.fg : TuiStyle.dim
+                        font.pixelSize: 12
+                    }
+                }
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onEntered: root.selectedIndex = 0
+            onClicked: card.activated()
+        }
+    }
 
     component SearchResultRow: Rectangle {
         id: row

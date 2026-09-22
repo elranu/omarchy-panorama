@@ -142,7 +142,44 @@ function format(value, useComma) {
     return useComma ? text.replace(".", ",") : text;
 }
 
-// Returns { expression, value, display } or null.
+// The expression as it reads best: spaced operators and typographic symbols,
+// e.g. "12*3+4" -> "12 × 3 + 4". Unary signs stay attached to their number.
+function prettyExpression(text) {
+    const tokens = tokenize(String(text ?? ""));
+    if (!tokens)
+        return String(text ?? "");
+    const symbol = { "*": "×", "/": "÷", "-": "−", "+": "+", "^": "^", "%": "%", "(": "(", ")": ")" };
+    let out = "";
+    let previous = null;
+    for (const token of tokens) {
+        if (token.type === "num") {
+            out += String(text).includes(",") && !String(text).includes(".")
+                ? String(token.value).replace(".", ",")
+                : String(token.value);
+        } else {
+            const op = token.value;
+            const unary = (op === "-" || op === "+")
+                && (previous === null || (previous.type === "op" && previous.value !== ")" && previous.value !== "%"));
+            if (op === "(" || op === ")" || op === "%" || op === "^" || unary)
+                out += symbol[op];
+            else
+                out += ` ${symbol[op]} `;
+        }
+        previous = token;
+    }
+    return out.replace(/\s+/g, " ").trim();
+}
+
+// Groups the integer part in threes with thin spaces for reading only; the
+// copied value never contains them.
+function grouped(display) {
+    const match = /^(-?)(\d+)(.*)$/.exec(String(display));
+    if (!match || match[2].length < 5)
+        return String(display);
+    return match[1] + match[2].replace(/\B(?=(\d{3})+(?!\d))/g, "\u2009") + match[3];
+}
+
+// Returns { expression, pretty, value, display, grouped } or null.
 //
 // Without a leading "=" the query must look like arithmetic: at least one
 // digit and at least one operator, so a plain search such as "2048" or
@@ -172,5 +209,12 @@ function evaluate(query) {
     if (!Number.isFinite(value))
         return null;
     const useComma = text.indexOf(",") >= 0 && text.indexOf(".") < 0;
-    return { expression: text, value: value, display: format(value, useComma) };
+    const display = format(value, useComma);
+    return {
+        expression: text,
+        pretty: prettyExpression(text),
+        value: value,
+        display: display,
+        grouped: grouped(display)
+    };
 }

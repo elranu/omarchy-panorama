@@ -6,8 +6,10 @@
   one of them a window overview too. The plugin id (`ranu.panorama`) and the
   repository URL are unchanged, so existing installs keep working.
 - Search has a calculator: arithmetic such as `12*3+4`, `2^10` or `200*15%`
-  becomes the first result, and Enter copies it to the clipboard. A leading `=`
-  forces a calculation. Expressions go through a small parser, never `eval`.
+  shows up as a card above the results, with the expression pretty-printed
+  (`12 × 3 + 4`) and the answer large, digits grouped (`1 048 576`). Enter
+  copies the plain number and Omarchy's OSD confirms it. A leading `=` forces
+  a calculation. Expressions go through a small parser, never `eval`.
 - Shift+Enter (or Shift+click) opens an app on the current workspace; Enter
   still opens it on a new one. The selected result shows both keys.
 
