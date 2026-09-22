@@ -345,7 +345,9 @@ Item {
             clip: true
 
             function ensureVisible(index) {
-                const rowHeight = 54;
+                // Rows are 54 tall, the selected one 76; scrolling to the row
+                // above keeps the grown row fully in view.
+                const rowHeight = 60;
                 const targetY = Math.max(0, index * rowHeight - 28);
                 if (targetY < contentY)
                     contentY = targetY;
@@ -633,26 +635,44 @@ Item {
         // inPlace is true for Shift+click; only app rows use it.
         signal activated(bool inPlace)
 
-        implicitHeight: 54
+        // The selected row grows: taller, larger icon and title, accent border.
+        // Sizes are animated rather than scaled so the text keeps its hinting
+        // instead of being resampled.
+        readonly property real grow: selected ? 1 : 0
+
+        implicitHeight: 54 + 22 * grow
         radius: 6
         color: selected ? TuiStyle.selection : "transparent"
+        border.width: selected ? 1 : 0
+        border.color: TuiStyle.accent
+
+        Behavior on implicitHeight {
+            NumberAnimation { duration: 110; easing.type: Easing.OutCubic }
+        }
 
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: 10
+            anchors.leftMargin: 10 + 2 * row.grow
             anchors.rightMargin: 12
             spacing: 11
 
             Rectangle {
-                Layout.preferredWidth: 34
-                Layout.preferredHeight: 34
+                Layout.preferredWidth: 34 + 14 * row.grow
+                Layout.preferredHeight: 34 + 14 * row.grow
                 radius: 6
+
+                Behavior on Layout.preferredWidth {
+                    NumberAnimation { duration: 110; easing.type: Easing.OutCubic }
+                }
+                Behavior on Layout.preferredHeight {
+                    NumberAnimation { duration: 110; easing.type: Easing.OutCubic }
+                }
                 color: row.selected ? TuiStyle.accentWash(TuiStyle.accent) : TuiStyle.surfaceSubtle
 
                 Image {
                     anchors.centerIn: parent
-                    width: 24
-                    height: 24
+                    width: 24 + 10 * row.grow
+                    height: 24 + 10 * row.grow
                     source: row.iconSource
                     fillMode: Image.PreserveAspectFit
                     smooth: true
@@ -662,7 +682,7 @@ Item {
                 NerdIcon {
                     anchors.centerIn: parent
                     symbol: row.symbol
-                    iconSize: 21
+                    iconSize: 21 + 9 * row.grow
                     color: row.selected ? TuiStyle.accent : TuiStyle.dim
                     visible: row.iconSource.length === 0
                 }
@@ -676,7 +696,8 @@ Item {
                     Layout.fillWidth: true
                     text: row.title
                     color: TuiStyle.fg
-                    font.pixelSize: 14
+                    font.pixelSize: 14 + 5 * row.grow
+                    font.weight: row.selected ? Font.DemiBold : Font.Normal
                     elide: Text.ElideRight
                 }
 
@@ -685,7 +706,7 @@ Item {
                     visible: text.length > 0
                     text: row.subtitle
                     color: TuiStyle.dim
-                    font.pixelSize: 12
+                    font.pixelSize: 12 + 2 * row.grow
                     elide: Text.ElideRight
                 }
             }

@@ -128,6 +128,10 @@ change together.
 
 ## Search
 
+**The selected result grows so it is obvious what Enter will do.**
+
+![Search results, with the selected one enlarged](docs/media/search-results.png)
+
 Open Overview with the standalone Win/Super key, then press `/` to enter search.
 Type an application name, window title, or Omarchy menu action and press Enter
 to launch or focus the selected result. Use the arrow keys or Tab to move the
@@ -138,24 +142,44 @@ behavior where any printable character starts search, turn off **Keep h/j/k/l
 for navigation** in the gear panel. Prefix a query with `>` to run it as a
 terminal command.
 
-Applications open on a new, empty workspace when you press Enter. Press
-**Shift+Enter** (or Shift+click the result) to open the app on the current
-workspace instead.
+### Search shortcuts
 
-Typing arithmetic shows the answer as the first result: `12*3+4`,
+| Key | What it does |
+|---|---|
+| `Enter` | Launch the selected application **on a new workspace**, focus the selected window, or run the selected menu action |
+| `Shift+Enter` | Launch the selected application **on the current workspace** (`Shift+click` does the same) |
+| `Up` / `Down` / `Tab` | Move the selection |
+| `Escape` | Leave search; again to close the Overview |
+| `>` prefix | Run the rest of the query as a terminal command |
+| `=` prefix | Force a calculation, e.g. `=2048` |
+
+### Calculator
+
+**Type arithmetic and the answer is the first result; Enter opens the calculator
+with it loaded.**
+
+![The Calculator mini app, with history and the copy confirmation](docs/media/calculator.png)
+
+Arithmetic in the query shows the answer straight away: `12*3+4`,
 `(1500-200)/4`, `2^10`, or `200*15%` (percent divides by 100). `x`, `×` and `÷`
-also work, and a comma is read as a decimal separator (`3,5*2`). **Enter** opens
-the **Calculator** mini app with that expression loaded; **Shift+Enter** copies
-the result and closes the Overview. Start the query with `=` to force a
-calculation, for example `=2048`. Expressions are parsed by the plugin itself, never evaluated as code.
+also work, a comma is read as a decimal separator (`3,5*2`), and numbers may
+carry an exponent (`1.5e3`). Expressions are parsed by the plugin itself, never
+evaluated as code.
+
+| Key | What it does |
+|---|---|
+| `=` prefix | Force a calculation, so a bare number counts: `=2048` |
+| `Enter` (on the answer card) | Open the Calculator mini app with the expression loaded |
+| `Shift+Enter` (on the answer card) | Copy the answer and close the Overview |
+| `Enter` (inside the Calculator) | Copy the answer, add it to the history, and leave it ready for the next operation |
+| `Backspace` / `Delete` / `C` | Delete the last character / clear / clear |
+| `Escape` | Close the Calculator and go back to the Overview |
 
 ### Mini apps
 
 Mini apps are small interactive panels that open over the workspace grid. Search
 for one by name (the Calculator answers to `calc`) and press Enter; Escape
-closes it and leaves the Overview open. Inside the Calculator you can type or
-click the keypad, Enter copies the answer and keeps it in the history, and the
-answer stays ready as the start of the next operation.
+closes it and leaves the Overview open.
 
 Adding one is a QML file based on `MiniApp.qml` plus an entry in `MiniApps.js`.
 
