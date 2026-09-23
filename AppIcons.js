@@ -19,6 +19,9 @@ function execBinary(execString) {
 // Keys an entry can be found by, most specific first. The last segment of a
 // reverse-DNS id ("com.mitchellh.ghostty" -> "ghostty") is included because
 // some apps report only that as their class.
+//
+// Kept for tests and readability; buildIndex does the same work without the
+// intermediate arrays, since it runs on every desktop-entry rescan.
 function entryKeys(entry) {
     const id = normalize(entry?.id);
     const keys = [normalize(entry?.startupClass), id, execBinary(entry?.execString)];
@@ -28,8 +31,18 @@ function entryKeys(entry) {
     return keys.filter(key => key.length > 0);
 }
 
+function claim(index, key, icon) {
+    if (key.length > 0 && index[key] === undefined)
+        index[key] = icon;
+}
+
 // key -> icon. The first entry to claim a key keeps it, so a more specific
 // match is not overwritten by a later entry's weaker one.
+//
+// Allocation matters here: Quickshell re-emits its entry list on every rescan,
+// and a per-entry array of keys made this a burst of garbage each time. A hang
+// (2026-09-23) caught the shell's main thread inside the JS garbage collector
+// under exactly this call, so keys are written straight into the index.
 function buildIndex(entries) {
     const index = ({});
     const list = entries ?? [];
@@ -38,11 +51,13 @@ function buildIndex(entries) {
         const icon = String(entry?.icon ?? "").trim();
         if (icon.length === 0)
             continue;
-        const keys = entryKeys(entry);
-        for (var j = 0; j < keys.length; ++j) {
-            if (index[keys[j]] === undefined)
-                index[keys[j]] = icon;
-        }
+        const id = normalize(entry?.id);
+        claim(index, normalize(entry?.startupClass), icon);
+        claim(index, id, icon);
+        claim(index, execBinary(entry?.execString), icon);
+        const dot = id.lastIndexOf(".");
+        if (dot > 0 && dot < id.length - 1)
+            claim(index, id.slice(dot + 1), icon);
     }
     return index;
 }

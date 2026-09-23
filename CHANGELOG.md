@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- The window-icon index is rebuilt without per-entry arrays and at most once per
+  burst of desktop-entry rescans. A captured hang (2026-09-23) had the shell's
+  main thread inside the JavaScript garbage collector under this rebuild,
+  although measurement later showed rescans are rare, so this reduces pressure
+  rather than proving a cause.
+
 ## 0.2.4
 
 - The repository is now `elranu/omarchy-vista`, matching the plugin's name.

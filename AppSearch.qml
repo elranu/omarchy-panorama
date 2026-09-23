@@ -114,9 +114,23 @@ Singleton {
         root.classIconIndex = AppIcons.buildIndex(DesktopEntries.applications.values || []);
     }
 
+    // Quickshell re-emits the entry list on every rescan, and those come in
+    // bursts (an application launching is enough). Rebuilding the index inside
+    // the signal handler put that work, and its garbage, on the main thread
+    // each time; coalescing keeps one rebuild per burst.
+    Timer {
+        id: classIconRebuild
+        interval: 500
+        repeat: false
+        onTriggered: root.rebuildClassIconIndex()
+    }
+
     Connections {
         target: DesktopEntries.applications
-        function onValuesChanged() { root.rebuildClassIconIndex(); }
+        function onValuesChanged() {
+            if (!classIconRebuild.running)
+                classIconRebuild.start();
+        }
     }
 
     function guessIcon(name) {
