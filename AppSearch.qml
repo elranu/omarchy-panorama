@@ -118,6 +118,12 @@ Singleton {
     // bursts (an application launching is enough). Rebuilding the index inside
     // the signal handler put that work, and its garbage, on the main thread
     // each time; coalescing keeps one rebuild per burst.
+    //
+    // The running timer is deliberately not restarted, matching the same choice
+    // in HyprlandData: restarting would be a true debounce, and a steady
+    // trickle of rescans could then postpone the rebuild indefinitely, leaving
+    // icons stale. This way a rebuild always lands within the interval, and a
+    // rescan arriving after it simply schedules the next one.
     Timer {
         id: classIconRebuild
         interval: 500
