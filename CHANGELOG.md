@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- The icon file index only covers the icons the desktop entries actually
+  declare, filtered by `grep` before anything reaches QML: 374 paths here
+  instead of 6979, each of which used to run a JavaScript callback at startup
+  and stay in memory. A hang captured on 2026-09-24 had the main thread in the
+  garbage collector under that per-line callback.
 - The window-icon index is rebuilt without per-entry arrays and at most once per
   burst of desktop-entry rescans. A captured hang (2026-09-23) had the shell's
   main thread inside the JavaScript garbage collector under this rebuild,

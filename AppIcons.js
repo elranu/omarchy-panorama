@@ -77,3 +77,47 @@ function resolve(index, className) {
         return map[name.slice(dot + 1)];
     return "";
 }
+
+// Icon names the plugin can ever need: what the desktop entries declare, plus
+// the generic fallback. Absolute paths need no index entry.
+function wantedIconNames(entries) {
+    const names = ({});
+    names["application-x-executable"] = true;
+    const list = entries ?? [];
+    for (var i = 0; i < list.length; ++i) {
+        const icon = String(list[i]?.icon ?? "").trim();
+        if (icon.length > 0 && icon.indexOf("/") < 0)
+            names[icon] = true;
+    }
+    return Object.keys(names);
+}
+
+// Only names made of characters that are safe inside a shell double-quoted
+// ERE. Anything else is dropped rather than escaped: an icon name with a quote
+// or a backslash in it is not worth the risk, and Quickshell.iconPath still
+// resolves it at lookup time.
+function safeIconName(name) {
+    return /^[A-Za-z0-9._+-]+$/.test(String(name ?? ""));
+}
+
+// Lists icon files for those names only. The unfiltered scan returned about
+// 7000 paths on a normal desktop, one JavaScript call each and all of them
+// retained; a hang (2026-09-24) caught the main thread in the garbage
+// collector under exactly that per-line handler. grep does the filtering
+// before any of it reaches QML.
+function iconScanCommand(names) {
+    const safe = (names ?? []).filter(safeIconName);
+    if (safe.length === 0)
+        return "";
+    const pattern = `/(${safe.join("|")})\\.(svg|png)$`;
+    return [
+        'dirs="$HOME/.icons $HOME/.local/share/icons";',
+        'IFS=":"; for d in ${XDG_DATA_DIRS:-/usr/local/share:/usr/share}; do dirs="$dirs $d/icons"; done; unset IFS;',
+        'for ext in svg png; do',
+        '  for base in $dirs; do',
+        '    [[ -d $base ]] && find "$base" \\( -path "*/apps/*" -o -path "*/devices/*" \\) -name "*.$ext" 2>/dev/null;',
+        '  done;',
+        '  find /usr/share/pixmaps -maxdepth 1 -name "*.$ext" 2>/dev/null;',
+        `done | grep -E "${pattern}"`
+    ].join(" ");
+}
